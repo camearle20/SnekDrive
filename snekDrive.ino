@@ -1,28 +1,15 @@
 #include <Adafruit_PWMServoDriver.h>
 
-/*
- Basic MQTT example
-
- This sketch demonstrates the basic capabilities of the library.
- It connects to an MQTT server then:
-  - publishes "hello world" to the topic "outTopic"
-  - subscribes to the topic "inTopic", printing out any messages
-    it receives. NB - it assumes the received payloads are strings not binary
-
- It will reconnect to the server if the connection is lost using a blocking
- reconnect function. See the 'mqtt_reconnect_nonblocking' example for how to
- achieve the same result without blocking the main loop.
- 
-*/
-
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
 
 
-#define MIN 370
-#define MAX 740
-#define WIGGLE_RATE 0.01
+#define MIN 370 //Min value of victor
+#define MAX 740 //Max value of victor
+#define WIGGLE_RATE 0.01 //Wiggle increment
+#define WIGGLE_LIMIT 1.0 //Wiggle upper and lower bound
+
 int rawPitch = 0;
 int rawRoll = 0;
 int rawYaw = 0;
@@ -45,7 +32,6 @@ bool button9    = false;
 bool button10   = false;
 bool button11   = false;
 bool button12   = false;
-
 int hat         = -1;
 
 struct LowPass {
@@ -108,11 +94,11 @@ double wiggle() {
   } else {
     lastWiggle -= WIGGLE_RATE;
   }
-  if (lastWiggle > 1.0) {
+  if (lastWiggle > WIGGLE_LIMIT) {
     lastWiggle = 1.0;
     wiggleDir = !wiggleDir;
   }
-  if (lastWiggle < -1.0) {
+  if (lastWiggle < -WIGGLE_LIMIT) {
     lastWiggle = -1.0;
     wiggleDir = !wiggleDir;
   }
