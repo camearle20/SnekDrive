@@ -22,30 +22,31 @@
 
 #define MIN 370
 #define MAX 740
-    int rawPitch = 0;
-    int rawRoll = 0;
-    int rawYaw = 0;
-    int rawThrottle = 0;
-    
-    double pitch       = 0.0;
-    double roll        = 0.0;
-    double yaw         = 0.0;
-    double throttle    = 0.0;
+#define WIGGLE_RATE 0.01
+int rawPitch = 0;
+int rawRoll = 0;
+int rawYaw = 0;
+int rawThrottle = 0;
 
-    bool trigger    = false;
-    bool thumb      = false;
-    bool button3    = false;
-    bool button4    = false;
-    bool button5    = false;
-    bool button6    = false;
-    bool button7    = false;
-    bool button8    = false;
-    bool button9    = false;
-    bool button10   = false;
-    bool button11   = false;
-    bool button12   = false;
+double pitch       = 0.0;
+double roll        = 0.0;
+double yaw         = 0.0;
+double throttle    = 0.0;
 
-    int hat         = -1;
+bool trigger    = false;
+bool thumb      = false;
+bool button3    = false;
+bool button4    = false;
+bool button5    = false;
+bool button6    = false;
+bool button7    = false;
+bool button8    = false;
+bool button9    = false;
+bool button10   = false;
+bool button11   = false;
+bool button12   = false;
+
+int hat         = -1;
 
 struct LowPass {
   double smoothing = 0;
@@ -99,6 +100,29 @@ double dMap(double x, double in_min, double in_max, double out_min, double out_m
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+double lastWiggle = 0.0;
+boolean wiggleDir = false;
+double wiggle() {
+  if (wiggleDir) {
+    lastWiggle += WIGGLE_RATE;
+  } else {
+    lastWiggle -= WIGGLE_RATE;
+  }
+  if (lastWiggle > 1.0) {
+    lastWiggle = 1.0;
+    wiggleDir = !wiggleDir;
+  }
+  if (lastWiggle < -1.0) {
+    lastWiggle = -1.0;
+    wiggleDir = !wiggleDir;
+  }
+  return lastWiggle;
+}
+void resetWiggle() {
+  lastWiggle = 0.0;
+  wiggleDir = false;
+}
+
 EthernetClient ethClient;
 PubSubClient client(ethClient);
 
@@ -144,7 +168,13 @@ void drive() {
   long leftDrive, rightDrive = 0;
 
   translation = pitchLp.lowPass(-pitch);
-  rotation = yawLp.lowPass(roll);
+  if (thumb) {
+    rotation = wiggle();
+    yawLp.reset();
+  } else {
+    rotation = yawLp.lowPass(roll);
+    resetWiggle();
+  }
   if (trigger) {
     if (translation < 0.0) {
       rotation = -rotation;
